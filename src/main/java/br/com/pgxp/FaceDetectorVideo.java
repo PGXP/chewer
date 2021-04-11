@@ -73,7 +73,9 @@ public class FaceDetectorVideo {
             for (File file : files) {
 
                 VideoCapture capture = new VideoCapture(dirLocation + file.getName());
-                String folderFinal = createDirectory(dirOut, file.getName());
+                int i = 0;
+                Path path = Paths.get(dirOut + file.getName());
+                Files.createDirectories(path);
 
                 if (capture.isOpened()) {
                     while (true) {
@@ -81,13 +83,31 @@ public class FaceDetectorVideo {
                         capture.read(webcamMatImage);
 
                         if (!webcamMatImage.empty()) {
+                            i++;
 
-                            List<Rect> rectsBody = new ArrayList<>();
                             List<Rect> rectsFace = new ArrayList<>();
 
                             for (CascadeClassifier classifierFace : classifierFaces) {
                                 MatOfRect faceDetections = new MatOfRect();
-                                classifierFace.detectMultiScale(webcamMatImage, faceDetections, 1.3, 9);
+                                classifierFace.detectMultiScale(webcamMatImage, faceDetections, 1.1, 9);
+                                rectsFace.addAll(Arrays.asList(faceDetections.toArray()));
+                            }
+
+                            if (rectsFace.size() >= 4) {
+
+                                for (Rect rect : rectsFace) {
+                                    Imgproc.rectangle(webcamMatImage, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height),
+                                            new Scalar(255, 0, 0));
+                                }
+
+                                Imgcodecs.imwrite(dirOut + file.getName() + "/faces-" + i + "-" + rectsFace.size() + ".jpg", webcamMatImage);
+                            }
+
+                            List<Rect> rectsBody = new ArrayList<>();
+
+                            for (CascadeClassifier classifierBody : classifierBodys) {
+                                MatOfRect faceDetections = new MatOfRect();
+                                classifierBody.detectMultiScale(webcamMatImage, faceDetections, 1.1, 7);
                                 rectsBody.addAll(Arrays.asList(faceDetections.toArray()));
                             }
 
@@ -95,26 +115,10 @@ public class FaceDetectorVideo {
 
                                 for (Rect rect : rectsBody) {
                                     Imgproc.rectangle(webcamMatImage, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height),
-                                            new Scalar(255, 0, 0));
-                                }
-
-                                Imgcodecs.imwrite(folderFinal + "/bodies/" + UUID.randomUUID().toString() + ".jpg", webcamMatImage);
-                            }
-
-                            for (CascadeClassifier classifierBody : classifierBodys) {
-                                MatOfRect faceDetections = new MatOfRect();
-                                classifierBody.detectMultiScale(webcamMatImage, faceDetections, 1.3, 9);
-                                rectsFace.addAll(Arrays.asList(faceDetections.toArray()));
-                            }
-
-                            if (!rectsFace.isEmpty()) {
-
-                                for (Rect rect : rectsFace) {
-                                    Imgproc.rectangle(webcamMatImage, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height),
                                             new Scalar(255, 255, 0));
                                 }
 
-                                Imgcodecs.imwrite(folderFinal + "/faces/" + UUID.randomUUID().toString() + ".jpg", webcamMatImage);
+                                Imgcodecs.imwrite(dirOut + file.getName() + "/bodies-" + i + "-" + rectsBody.size() + ".jpg", webcamMatImage);
                             }
 
                         } else {
