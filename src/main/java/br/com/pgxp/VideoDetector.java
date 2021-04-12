@@ -81,13 +81,17 @@ public class VideoDetector {
                 Files.createDirectories(path);
 
                 List<Mat> imagens = new ArrayList<>();
-
+                int p = 0;
                 if (capture.isOpened()) {
                     while (true) {
                         Mat webcamMatImage = new Mat();
                         capture.read(webcamMatImage);
                         if (!webcamMatImage.empty()) {
-                            imagens.add(webcamMatImage);
+                            if (p == 15) {
+                                imagens.add(webcamMatImage);
+                                p = 0;
+                            }
+                            p++;
                         } else {
                             System.out.println("Break!" + file.getName());
                             capture.release();
@@ -102,10 +106,13 @@ public class VideoDetector {
                 System.out.println("Total de imagens " + imagens.size());
 
                 for (int i = 1; i < imagens.size() - 1; i++) {
-                    compare(imagens.get(0), imagens.get(i), imagens.get(i + 1), dirOut + file.getName() + "/", "" + i);
+//                    compare(imagens.get(0), imagens.get(i), imagens.get(i + 1), dirOut + file.getName() + "/", "" + i);
+
+                   
+
                 }
 
-//                Files.move(Paths.get(dirLocation + file.getName()), Paths.get(dirFinal + file.getName()), StandardCopyOption.REPLACE_EXISTING);
+                Files.move(Paths.get(dirLocation + file.getName()), Paths.get(dirFinal + file.getName()), StandardCopyOption.REPLACE_EXISTING);
                 System.gc();
             }
 
@@ -180,11 +187,38 @@ public class VideoDetector {
 //        System.out.println(" M0 Base - t2 = " + BigDecimal.valueOf(baseTest2));
 //        System.out.println(" M2 Base - t1 = " + baseTest3);
 //        System.out.println(" M3 Base - t1 = " + baseTest4);
-//        if (baseTest1 <= 0.95) {
-        System.out.println(" M0 Base - t1 = " + BigDecimal.valueOf(baseTest1));
-        Imgcodecs.imwrite(outputDir + name + " " + baseTest1 + ".jpg", srcTest1);
+        if (baseTest1 <= 0.95) {
+            System.out.println(" M0 Base - t1 = " + BigDecimal.valueOf(baseTest1));
+            Imgcodecs.imwrite(outputDir + name + " " + baseTest1 + ".jpg", srcTest1);
 
-//        }
+        }
+    }
+
+    public static double compare(Mat srcBase, Mat srcTest1) {
+
+        Mat hsvBase = new Mat(), hsvTest1 = new Mat();
+        Imgproc.cvtColor(srcBase, hsvBase, Imgproc.COLOR_BGR2HSV);
+        Imgproc.cvtColor(srcTest1, hsvTest1, Imgproc.COLOR_BGR2HSV);
+
+//        Mat hsvHalfDown = hsvBase.submat(new Range(hsvBase.rows() / 2, hsvBase.rows() - 1), new Range(0, hsvBase.cols() - 1));
+        int hBins = 50, sBins = 60;
+        int[] histSize = {hBins, sBins};
+//        // hue varies from 0 to 179, saturation from 0 to 255
+        float[] ranges = {0, 180, 0, 256};
+//        // Use the 0-th and 1-st channels
+        int[] channels = {0, 1};
+        Mat histBase = new Mat(), histHalfDown = new Mat(), histTest1 = new Mat(), histTest2 = new Mat();
+
+        List<Mat> hsvBaseList = Arrays.asList(hsvBase);
+        Imgproc.calcHist(hsvBaseList, new MatOfInt(channels), new Mat(), histBase, new MatOfInt(histSize), new MatOfFloat(ranges), false);
+        Core.normalize(histBase, histBase, 0, 1, Core.NORM_MINMAX);
+
+        List<Mat> hsvTest1List = Arrays.asList(hsvTest1);
+        Imgproc.calcHist(hsvTest1List, new MatOfInt(channels), new Mat(), histTest1, new MatOfInt(histSize), new MatOfFloat(ranges), false);
+        Core.normalize(histTest1, histTest1, 0, 1, Core.NORM_MINMAX);
+
+        return Imgproc.compareHist(histBase, histTest1, 0);
+
     }
 
     public static void compare2(Mat srcTest1, Mat srcTest2) {
