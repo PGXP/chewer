@@ -7,23 +7,28 @@ package br.com.pgxp;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
+import org.bytedeco.opencv.opencv_features2d.DescriptorMatcher;
+import org.bytedeco.opencv.opencv_features2d.ORB;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfInt;
+import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.Range;
+import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 import org.opencv.videoio.VideoCapture;
@@ -41,9 +46,9 @@ public class VideoDetector {
         Set<CascadeClassifier> classifierFaces = new HashSet<>();
         Set<CascadeClassifier> classifierBodys = new HashSet<>();
 
-        String dirLocation = "/media/gladson/Elements/videos/16/";
-        String dirFinal = "/media/gladson/Elements/vistos/";
-        String dirOut = "/media/gladson/Elements/imagens/";
+        String dirLocation = "/opt/chewer/video/";
+        String dirFinal = "/opt/chewer/final/";
+        String dirOut = "/opt/chewer/images/";
         String dirClassifierFace = "/opt/chewer/face/";
         String dirClassifierBody = "/opt/chewer/body/";
 
@@ -80,16 +85,12 @@ public class VideoDetector {
                 if (capture.isOpened()) {
                     while (true) {
                         Mat webcamMatImage = new Mat();
-
                         capture.read(webcamMatImage);
-
                         if (!webcamMatImage.empty()) {
                             imagens.add(webcamMatImage);
                         } else {
-                            System.out.println(" -- Frame not captured -- Break!" + file.getName());
+                            System.out.println("Break!" + file.getName());
                             capture.release();
-                            Files.move(Paths.get(dirLocation + file.getName()), Paths.get(dirFinal + file.getName()), StandardCopyOption.REPLACE_EXISTING);
-                            System.gc();
                             break;
                         }
 
@@ -98,10 +99,14 @@ public class VideoDetector {
                     System.out.println("Couldn't open capture.");
                 }
 
+                System.out.println("Total de imagens " + imagens.size());
+
                 for (int i = 1; i < imagens.size() - 1; i++) {
-                    compare(imagens.get(0), imagens.get(i), imagens.get(i+1));
+                    compare(imagens.get(0), imagens.get(i), imagens.get(i + 1), dirOut + file.getName() + "/", "" + i);
                 }
 
+//                Files.move(Paths.get(dirLocation + file.getName()), Paths.get(dirFinal + file.getName()), StandardCopyOption.REPLACE_EXISTING);
+                System.gc();
             }
 
         } catch (IOException e) {
@@ -131,7 +136,7 @@ public class VideoDetector {
 
     }
 
-    public static void compare(Mat srcBase, Mat srcTest1, Mat srcTest2) {
+    public static void compare(Mat srcBase, Mat srcTest1, Mat srcTest2, String outputDir, String name) {
 
         if (srcBase.empty() || srcTest1.empty() || srcTest2.empty()) {
             System.err.println("Cannot read the images");
@@ -149,23 +154,52 @@ public class VideoDetector {
         // Use the 0-th and 1-st channels
         int[] channels = {0, 1};
         Mat histBase = new Mat(), histHalfDown = new Mat(), histTest1 = new Mat(), histTest2 = new Mat();
+
         List<Mat> hsvBaseList = Arrays.asList(hsvBase);
         Imgproc.calcHist(hsvBaseList, new MatOfInt(channels), new Mat(), histBase, new MatOfInt(histSize), new MatOfFloat(ranges), false);
         Core.normalize(histBase, histBase, 0, 1, Core.NORM_MINMAX);
-        List<Mat> hsvHalfDownList = Arrays.asList(hsvHalfDown);
-        Imgproc.calcHist(hsvHalfDownList, new MatOfInt(channels), new Mat(), histHalfDown, new MatOfInt(histSize), new MatOfFloat(ranges), false);
-        Core.normalize(histHalfDown, histHalfDown, 0, 1, Core.NORM_MINMAX);
+
+//        List<Mat> hsvHalfDownList = Arrays.asList(hsvHalfDown);
+//        Imgproc.calcHist(hsvHalfDownList, new MatOfInt(channels), new Mat(), histHalfDown, new MatOfInt(histSize), new MatOfFloat(ranges), false);
+//        Core.normalize(histHalfDown, histHalfDown, 0, 1, Core.NORM_MINMAX);
         List<Mat> hsvTest1List = Arrays.asList(hsvTest1);
         Imgproc.calcHist(hsvTest1List, new MatOfInt(channels), new Mat(), histTest1, new MatOfInt(histSize), new MatOfFloat(ranges), false);
         Core.normalize(histTest1, histTest1, 0, 1, Core.NORM_MINMAX);
-        List<Mat> hsvTest2List = Arrays.asList(hsvTest2);
-        Imgproc.calcHist(hsvTest2List, new MatOfInt(channels), new Mat(), histTest2, new MatOfInt(histSize), new MatOfFloat(ranges), false);
-        Core.normalize(histTest2, histTest2, 0, 1, Core.NORM_MINMAX);
-        for (int compareMethod = 0; compareMethod < 4; compareMethod++) {
-            double baseTest1 = Imgproc.compareHist(histBase, histTest1, compareMethod);
-            double baseTest2 = Imgproc.compareHist(histTest1, histTest2, compareMethod);
-            System.out.println(" / " + baseTest1 + " / " + baseTest2+ " / " +(baseTest2-baseTest1));
-        }
+
+//        List<Mat> hsvTest2List = Arrays.asList(hsvTest2);
+//        Imgproc.calcHist(hsvTest2List, new MatOfInt(channels), new Mat(), histTest2, new MatOfInt(histSize), new MatOfFloat(ranges), false);
+//        Core.normalize(histTest2, histTest2, 0, 1, Core.NORM_MINMAX);
+        double baseTest1 = Imgproc.compareHist(histBase, histTest1, 0);
+//        double baseTest2 = Imgproc.compareHist(histBase, histTest2, 0);
+//        double baseTest3 = Imgproc.compareHist(histBase, histTest1, 2);
+//        double baseTest4 = Imgproc.compareHist(histBase, histTest1, 3);
+//        double baseTest2 = Imgproc.compareHist(histBase, histTest2, 1);
+//        double baseTest3 = Imgproc.compareHist(histTest1, histTest2, 3);
+
+//        System.out.println(" M0 Base - t1 = " + BigDecimal.valueOf(baseTest1));
+//        System.out.println(" M0 Base - t2 = " + BigDecimal.valueOf(baseTest2));
+//        System.out.println(" M2 Base - t1 = " + baseTest3);
+//        System.out.println(" M3 Base - t1 = " + baseTest4);
+//        if (baseTest1 <= 0.95) {
+        System.out.println(" M0 Base - t1 = " + BigDecimal.valueOf(baseTest1));
+        Imgcodecs.imwrite(outputDir + name + " " + baseTest1 + ".jpg", srcTest1);
+
+//        }
+    }
+
+    public static void compare2(Mat srcTest1, Mat srcTest2) {
+
+//        MatOfKeyPoint keypoints1 = new MatOfKeyPoint();
+//        MatOfKeyPoint keypoints2 = new MatOfKeyPoint();
+//        Mat descriptors1 = new Mat();
+//        Mat descriptors2 = new Mat();
+//
+////Definition of descriptor matcher
+//        DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+//
+////Match points of two images
+//        MatOfDMatch matches = new MatOfDMatch();
+//        matcher.match(descriptors1, descriptors2, matches);
     }
 
 }
