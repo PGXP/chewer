@@ -45,12 +45,12 @@ public class FaceDetectorVideo {
         Set<CascadeClassifier> classifierFaces = new HashSet<>();
         Set<CascadeClassifier> classifierBodys = new HashSet<>();
 
-//        String dirLocation = "/media/desktop/Elements/videos/";
-//        String dirFinal = "/media/desktop/Elements/vistos/";
-//        String dirOut = "/media/desktop/Elements/imagens/";
-        String dirLocation = "/opt/chewer/video/";
-        String dirFinal = "/opt/chewer/final/";
-        String dirOut = "/opt/chewer/images/";
+        String dirLocation = "/media/gladson/Elements/videos/16/";
+        String dirFinal = "/media/gladson/Elements/vistos/";
+        String dirOut = "/media/gladson/Elements/imagens/";
+//        String dirLocation = "/opt/chewer/video/";
+//        String dirFinal = "/opt/chewer/final/";
+//        String dirOut = "/opt/chewer/images/";
 
         String dirClassifierFace = "/opt/chewer/face/";
         String dirClassifierBody = "/opt/chewer/body/";
@@ -97,18 +97,24 @@ public class FaceDetectorVideo {
                                 webcamFirst = webcamMatImage;
                             }
 
-                            if (i == 30) {
+                            if (i == 15) {
                                 i = 0;
                                 double valor = compare(webcamFirst, webcamMatImage);
 
-                                if (valor <= 0.95) {
+                                String encontrou = "";
+
+                                if (valor <= 0.60) {
 
                                     List<Rect> rectsFace = new ArrayList<>();
 
                                     for (CascadeClassifier classifierFace : classifierFaces) {
                                         MatOfRect faceDetections = new MatOfRect();
-                                        classifierFace.detectMultiScale(webcamMatImage, faceDetections, 1.1, 9);
+                                        classifierFace.detectMultiScale(webcamMatImage, faceDetections, 1.1, 5);
                                         rectsFace.addAll(Arrays.asList(faceDetections.toArray()));
+                                    }
+
+                                    if (!rectsFace.isEmpty()) {
+                                        encontrou = " Faces ";
                                     }
 
                                     for (Rect rect : rectsFace) {
@@ -120,8 +126,12 @@ public class FaceDetectorVideo {
 
                                     for (CascadeClassifier classifierBody : classifierBodys) {
                                         MatOfRect faceDetections = new MatOfRect();
-                                        classifierBody.detectMultiScale(webcamMatImage, faceDetections, 1.1, 7);
+                                        classifierBody.detectMultiScale(webcamMatImage, faceDetections, 1.1, 5);
                                         rectsBody.addAll(Arrays.asList(faceDetections.toArray()));
+                                    }
+
+                                    if (!rectsBody.isEmpty()) {
+                                        encontrou = encontrou + " Bodies ";
                                     }
 
                                     for (Rect rect : rectsBody) {
@@ -129,7 +139,7 @@ public class FaceDetectorVideo {
                                                 new Scalar(255, 255, 0));
                                     }
 
-                                    Imgcodecs.imwrite(dirOut + file.getName() + "/" + p + " " + UUID.randomUUID().toString() + "  " + valor + " " + ".jpg", webcamMatImage);
+                                    Imgcodecs.imwrite(dirOut + file.getName() + "/" + p + encontrou + " " + UUID.randomUUID().toString() + "  " + valor + " " + ".jpg", webcamMatImage);
 
                                 }
 
