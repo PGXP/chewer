@@ -99,7 +99,7 @@ public class FaceDetectorVideo {
                                 webcamFirst = webcamMatImage;
                             }
 
-                            if (i == 15) {
+                            if (i == 10) {
                                 i = 0;
 
 //                                avg = (valor + avg) / 2;
