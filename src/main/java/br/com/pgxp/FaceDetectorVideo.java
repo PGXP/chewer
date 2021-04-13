@@ -45,12 +45,12 @@ public class FaceDetectorVideo {
         Set<CascadeClassifier> classifierFaces = new HashSet<>();
         Set<CascadeClassifier> classifierBodys = new HashSet<>();
 
-        String dirLocation = "/media/gladson/Elements/videos/16/";
-        String dirFinal = "/media/gladson/Elements/vistos/";
-        String dirOut = "/media/gladson/Elements/imagens/";
-//        String dirLocation = "/opt/chewer/video/";
-//        String dirFinal = "/opt/chewer/final/";
-//        String dirOut = "/opt/chewer/images/";
+//        String dirLocation = "/media/gladson/Elements/videos/16/";
+//        String dirFinal = "/media/gladson/Elements/vistos/";
+//        String dirOut = "/media/gladson/Elements/imagens/";
+        String dirLocation = "/opt/chewer/video/";
+        String dirFinal = "/opt/chewer/final/";
+        String dirOut = "/opt/chewer/images/";
 
         String dirClassifierFace = "/opt/chewer/face/";
         String dirClassifierBody = "/opt/chewer/body/";
@@ -81,6 +81,8 @@ public class FaceDetectorVideo {
                 VideoCapture capture = new VideoCapture(dirLocation + file.getName());
                 int i = 0;
                 int p = 0;
+                double avg = 1;
+                double valor = 1;
                 Path path = Paths.get(dirOut + file.getName());
                 Files.createDirectories(path);
                 Mat webcamFirst = null;
@@ -99,17 +101,21 @@ public class FaceDetectorVideo {
 
                             if (i == 15) {
                                 i = 0;
-                                double valor = compare(webcamFirst, webcamMatImage);
 
+//                                avg = (valor + avg) / 2;
+                                valor = compare(webcamFirst, webcamMatImage);
+
+//                                webcamFirst = webcamMatImage;
                                 String encontrou = "";
 
-                                if (valor <= 0.60) {
+                                if (valor <= avg) {
 
+                                    avg = (valor + avg) / 2;
                                     List<Rect> rectsFace = new ArrayList<>();
 
                                     for (CascadeClassifier classifierFace : classifierFaces) {
                                         MatOfRect faceDetections = new MatOfRect();
-                                        classifierFace.detectMultiScale(webcamMatImage, faceDetections, 1.1, 5);
+                                        classifierFace.detectMultiScale(webcamMatImage, faceDetections, 1.3, 9);
                                         rectsFace.addAll(Arrays.asList(faceDetections.toArray()));
                                     }
 
@@ -126,7 +132,7 @@ public class FaceDetectorVideo {
 
                                     for (CascadeClassifier classifierBody : classifierBodys) {
                                         MatOfRect faceDetections = new MatOfRect();
-                                        classifierBody.detectMultiScale(webcamMatImage, faceDetections, 1.1, 5);
+                                        classifierBody.detectMultiScale(webcamMatImage, faceDetections, 1.3, 9);
                                         rectsBody.addAll(Arrays.asList(faceDetections.toArray()));
                                     }
 
@@ -136,18 +142,21 @@ public class FaceDetectorVideo {
 
                                     for (Rect rect : rectsBody) {
                                         Imgproc.rectangle(webcamMatImage, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height),
-                                                new Scalar(255, 255, 0));
+                                                new Scalar(0, 255, 0));
                                     }
 
-                                    Imgcodecs.imwrite(dirOut + file.getName() + "/" + p + encontrou + " " + UUID.randomUUID().toString() + "  " + valor + " " + ".jpg", webcamMatImage);
+                                    Imgcodecs.imwrite(dirOut + file.getName() + "/" + p + encontrou + UUID.randomUUID().toString() + "  " + valor + " " + ".jpg", webcamMatImage);
 
                                 }
+//                                else {
+//                                    avg = (valor + avg) / 2;
+//                                }
 
                             }
                         } else {
                             System.out.println(" -- Frame not captured -- Break!" + file.getName());
                             capture.release();
-                            Files.move(Paths.get(dirLocation + file.getName()), Paths.get(dirFinal + file.getName()), StandardCopyOption.REPLACE_EXISTING);
+                            //   Files.move(Paths.get(dirLocation + file.getName()), Paths.get(dirFinal + file.getName()), StandardCopyOption.REPLACE_EXISTING);
                             System.gc();
                             break;
                         }
@@ -189,27 +198,22 @@ public class FaceDetectorVideo {
     public static double compare(Mat srcBase, Mat srcTest1) {
 
         Mat hsvBase = new Mat(), hsvTest1 = new Mat();
-        Imgproc.cvtColor(srcBase, hsvBase, Imgproc.COLOR_BGR2HSV);
-        Imgproc.cvtColor(srcTest1, hsvTest1, Imgproc.COLOR_BGR2HSV);
+        Imgproc.cvtColor(srcBase, hsvBase, Imgproc.COLOR_RGB2HSV);
+        Imgproc.cvtColor(srcTest1, hsvTest1, Imgproc.COLOR_RGB2HSV);
 
-//        Mat hsvHalfDown = hsvBase.submat(new Range(hsvBase.rows() / 2, hsvBase.rows() - 1), new Range(0, hsvBase.cols() - 1));
-        int hBins = 50, sBins = 60;
-        int[] histSize = {hBins, sBins};
-//        // hue varies from 0 to 179, saturation from 0 to 255
-        float[] ranges = {0, 180, 0, 256};
-//        // Use the 0-th and 1-st channels
-        int[] channels = {0, 1};
-        Mat histBase = new Mat(), histHalfDown = new Mat(), histTest1 = new Mat(), histTest2 = new Mat();
+        MatOfInt histSize = new MatOfInt(255);
+        MatOfFloat ranges = new MatOfFloat(0f, 256f);
+        Mat histBase = new Mat(), histTest1 = new Mat();
 
         List<Mat> hsvBaseList = Arrays.asList(hsvBase);
-        Imgproc.calcHist(hsvBaseList, new MatOfInt(channels), new Mat(), histBase, new MatOfInt(histSize), new MatOfFloat(ranges), false);
-        Core.normalize(histBase, histBase, 0, 1, Core.NORM_MINMAX);
+        Imgproc.calcHist(hsvBaseList, new MatOfInt(0), new Mat(), histBase, histSize, ranges);
+        Core.normalize(histBase, histBase, 1, histBase.rows(), Core.NORM_MINMAX, -1, new Mat());
 
         List<Mat> hsvTest1List = Arrays.asList(hsvTest1);
-        Imgproc.calcHist(hsvTest1List, new MatOfInt(channels), new Mat(), histTest1, new MatOfInt(histSize), new MatOfFloat(ranges), false);
-        Core.normalize(histTest1, histTest1, 0, 1, Core.NORM_MINMAX);
+        Imgproc.calcHist(hsvTest1List, new MatOfInt(0), new Mat(), histTest1, histSize, ranges);
+        Core.normalize(histTest1, histTest1, 1, histTest1.rows(), Core.NORM_MINMAX, -1, new Mat());
 
-        return Imgproc.compareHist(histBase, histTest1, 0);
+        return Imgproc.compareHist(histBase, histTest1, Imgproc.HISTCMP_CORREL);
 
     }
 }
