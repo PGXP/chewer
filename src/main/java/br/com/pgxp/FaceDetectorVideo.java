@@ -45,12 +45,12 @@ public class FaceDetectorVideo {
         Set<CascadeClassifier> classifierFaces = new HashSet<>();
         Set<CascadeClassifier> classifierBodys = new HashSet<>();
 
-//        String dirLocation = "/media/gladson/Elements/videos/16/";
-//        String dirFinal = "/media/gladson/Elements/vistos/";
-//        String dirOut = "/media/gladson/Elements/imagens/";
-        String dirLocation = "/opt/chewer/video/";
-        String dirFinal = "/opt/chewer/final/";
-        String dirOut = "/opt/chewer/images/";
+        String dirLocation = "/media/gladson/Elements/videos/14/";
+        String dirFinal = "/media/gladson/Elements/vistos/";
+        String dirOut = "/media/gladson/Elements/imagens/";
+//        String dirLocation = "/opt/chewer/video/";
+//        String dirFinal = "/opt/chewer/final/";
+//        String dirOut = "/opt/chewer/images/";
 
         String dirClassifierFace = "/opt/chewer/face/";
         String dirClassifierBody = "/opt/chewer/body/";
@@ -156,7 +156,7 @@ public class FaceDetectorVideo {
                         } else {
                             System.out.println(" -- Frame not captured -- Break!" + file.getName());
                             capture.release();
-                            //   Files.move(Paths.get(dirLocation + file.getName()), Paths.get(dirFinal + file.getName()), StandardCopyOption.REPLACE_EXISTING);
+                            Files.move(Paths.get(dirLocation + file.getName()), Paths.get(dirFinal + file.getName()), StandardCopyOption.REPLACE_EXISTING);
                             System.gc();
                             break;
                         }
